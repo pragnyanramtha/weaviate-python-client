@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from enum import Enum, auto
 from typing import (
     Any,
@@ -240,6 +241,199 @@ class Rerank(_WeaviateInput):
 
     prop: str
     query: Optional[str] = Field(default=None)
+
+
+
+@dataclass
+class _DecayFunction:
+    property: str
+    origin: str
+    scale: str
+    offset: Optional[str] = None
+    curve: Optional[str] = None
+    decay_value: Optional[float] = None
+
+
+@dataclass
+class _PropertyValueFunction:
+    property: str
+    modifier: Optional[str] = None
+
+
+@dataclass
+class _BoostCondition:
+    filter: Optional[Any] = None  # FilterReturn
+    decay: Optional[_DecayFunction] = None
+    property_value: Optional[_PropertyValueFunction] = None
+    weight: Optional[float] = None
+
+
+@dataclass
+class _Boost:
+    conditions: List[_BoostCondition]
+    weight: Optional[float] = None
+    depth: Optional[int] = None
+
+
+def _decay_value_to_str(val: Union[str, int, float, timedelta, datetime]) -> str:
+    """Convert a decay parameter value to the string format expected by the server."""
+    if isinstance(val, timedelta):
+        total_seconds = val.total_seconds()
+        if total_seconds >= 86400 and total_seconds % 86400 == 0:
+            return f"{int(total_seconds // 86400)}d"
+        if total_seconds >= 3600 and total_seconds % 3600 == 0:
+            return f"{int(total_seconds // 3600)}h"
+        if total_seconds >= 60 and total_seconds % 60 == 0:
+            return f"{int(total_seconds // 60)}m"
+        if total_seconds == int(total_seconds):
+            return f"{int(total_seconds)}s"
+        return f"{total_seconds}s"
+    if isinstance(val, datetime):
+        return val.isoformat()
+    return str(val)
+
+
+class _BoostCurve(str, BaseEnum):
+    """Decay curve type for distance-based rank scoring."""
+
+    EXPONENTIAL = "exp"
+    GAUSSIAN = "gauss"
+    LINEAR = "linear"
+
+
+class _BoostModifier(str, BaseEnum):
+    """Score modifier for property-value rank scoring."""
+
+    NONE = "none"
+    LOG1P = "log1p"
+    SQRT = "sqrt"
+
+
+class Boost:
+    """Define soft-ranking conditions to boost or demote matching documents without excluding them.
+
+    Use the static methods `boost()`, `decay()`, and `blend()` to create rank configurations.
+    """
+
+    Curve = _BoostCurve
+    Modifier = _BoostModifier
+
+    def __init__(self) -> None:
+        raise TypeError("Boost cannot be instantiated. Use the static methods to create a rank.")
+
+    @staticmethod
+    def filter(
+        filter: Any,
+        *,
+        weight: Optional[float] = None,
+        depth: Optional[int] = None,
+    ) -> _Boost:
+        """Boost or demote results matching a filter condition.
+
+        Args:
+            filter: The filter condition (same as used in `filters=` parameter).
+            weight: Blending weight [0,1] controlling how much the rank affects final scores.
+            depth: Number of results to rescore (default 100, max 10000). Higher values improve accuracy at the cost of performance.
+        """
+        return _Boost(conditions=[_BoostCondition(filter=filter)], weight=weight, depth=depth)
+
+    @staticmethod
+    def decay(
+        property: str,
+        *,
+        origin: Optional[Union[str, int, float, datetime]] = None,
+        scale: Union[str, int, float, timedelta],
+        offset: Optional[Union[str, int, float, timedelta]] = None,
+        curve: Optional[Union[_BoostCurve, str]] = None,
+        decay_value: Optional[float] = None,
+        weight: Optional[float] = None,
+        depth: Optional[int] = None,
+    ) -> _Boost:
+        """Apply distance-based decay scoring from an origin value.
+
+        Args:
+            property: The property name to compute distance from.
+            origin: The origin point. Use "now" for current time, a datetime for a specific time,
+                or a numeric value for number properties. Defaults to "now" for date properties.
+            scale: Distance from origin where score equals decay_value. Use timedelta for date
+                properties (e.g. timedelta(days=7)) or a number for numeric properties. String
+                shorthands like "7d", "24h" are also accepted.
+            offset: Documents within this distance from origin get full score (default "0").
+                Accepts the same types as scale.
+            curve: Decay curve type: `Boost.Curve.EXPONENTIAL` (default), `Boost.Curve.GAUSSIAN`, or `Boost.Curve.LINEAR`.
+            decay_value: Score at scale distance from origin (default 0.5).
+            weight: Blending weight [0,1] controlling how much the rank affects final scores.
+            depth: Number of results to rescore (default 100, max 10000). Higher values improve accuracy at the cost of performance.
+        """
+        return _Boost(
+            conditions=[
+                _BoostCondition(
+                    decay=_DecayFunction(
+                        property=property,
+                        origin=_decay_value_to_str(origin) if origin is not None else "",
+                        scale=_decay_value_to_str(scale),
+                        offset=_decay_value_to_str(offset) if offset is not None else None,
+                        curve=curve.value if isinstance(curve, _BoostCurve) else curve,
+                        decay_value=decay_value,
+                    )
+                )
+            ],
+            weight=weight,
+            depth=depth,
+        )
+
+    @staticmethod
+    def property(
+        name: str,
+        *,
+        modifier: Optional[Union[_BoostModifier, str]] = None,
+        weight: Optional[float] = None,
+        depth: Optional[int] = None,
+    ) -> _Boost:
+        """Rank by a numeric property's value directly.
+
+        Args:
+            name: The property name to use as a ranking signal.
+            modifier: Score modifier: `Boost.Modifier.NONE` (default), `Boost.Modifier.LOG1P`, or `Boost.Modifier.SQRT`.
+            weight: Blending weight [0,1] controlling how much the rank affects final scores.
+            depth: Number of results to rescore (default 100, max 10000).
+        """
+        return _Boost(
+            conditions=[
+                _BoostCondition(
+                    property_value=_PropertyValueFunction(
+                        property=name,
+                        modifier=modifier.value if isinstance(modifier, _BoostModifier) else modifier,
+                    )
+                )
+            ],
+            weight=weight,
+            depth=depth,
+        )
+
+    @staticmethod
+    def blend(
+        *ranks: _Boost,
+        weight: Optional[float] = None,
+        depth: Optional[int] = None,
+    ) -> _Boost:
+        """Combine multiple rank conditions with individual weights.
+
+        When blending, each sub-rank's weight becomes a per-condition weight,
+        and the `weight` parameter here controls the overall blending strength.
+
+        Args:
+            *ranks: Rank objects created via `Boost.filter()`, `Boost.decay()`, or `Boost.property()`.
+            weight: Overall blending weight [0,1] for combining primary search and rank scores.
+            depth: Number of results to rescore (default 100, max 10000). Higher values improve accuracy at the cost of performance.
+        """
+        conditions: List[_BoostCondition] = []
+        for r in ranks:
+            for cond in r.conditions:
+                if cond.weight is None and r.weight is not None:
+                    cond = _BoostCondition(filter=cond.filter, decay=cond.decay, property_value=cond.property_value, weight=r.weight)
+                conditions.append(cond)
+        return _Boost(conditions=conditions, weight=weight, depth=depth)
 
 
 @dataclass

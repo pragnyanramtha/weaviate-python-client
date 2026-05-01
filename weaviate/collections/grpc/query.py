@@ -34,6 +34,7 @@ from weaviate.collections.classes.grpc import (
     _MetadataQuery,
     _QueryReference,
     _QueryReferenceMultiTarget,
+    _Boost,
     _Sorting,
 )
 from weaviate.collections.classes.internal import (
@@ -121,6 +122,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[_Boost] = None,
     ) -> search_get_pb2.SearchRequest:
         if self._validate_arguments:
             _validate_input(_ValidateArgument([_Sorting, None], "sort", sort))
@@ -143,6 +145,7 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
+            boost=boost,
             sort_by=sort_by,
         )
 
@@ -166,6 +169,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[_Boost] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
@@ -178,6 +182,7 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
+            boost=boost,
             autocut=autocut,
             hybrid_search=self._parse_hybrid(
                 query,
@@ -207,6 +212,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[_Boost] = None,
     ) -> search_get_pb2.SearchRequest:
         if self._validate_arguments:
             _validate_input(
@@ -226,6 +232,7 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
+            boost=boost,
             autocut=autocut,
             bm25=(
                 base_search_pb2.BM25(
@@ -258,6 +265,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[_Boost] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
@@ -272,6 +280,7 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
+            boost=boost,
             autocut=autocut,
             group_by=group_by,
             near_vector=self._parse_near_vector(
@@ -292,6 +301,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[_Boost] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
@@ -306,6 +316,7 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
+            boost=boost,
             autocut=autocut,
             group_by=group_by,
             near_object=self._parse_near_object(near_object, certainty, distance, target_vector),
@@ -326,6 +337,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[_Boost] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
@@ -340,6 +352,7 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
+            boost=boost,
             autocut=autocut,
             group_by=group_by,
             near_text=self._parse_near_text(
@@ -366,6 +379,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[_Boost] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
@@ -380,6 +394,7 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
+            boost=boost,
             autocut=autocut,
             group_by=group_by,
             **self._parse_media(
@@ -402,6 +417,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        boost: Optional[_Boost] = None,
         autocut: Optional[int] = None,
         group_by: Optional[_GroupBy] = None,
         near_vector: Optional[base_search_pb2.NearVector] = None,
@@ -495,6 +511,7 @@ class _QueryGRPC(_BaseGRPC):
                 if rerank is not None
                 else None
             ),
+            boost=self.__boost_to_grpc(boost),
             near_vector=near_vector,
             sort_by=sort_by,
             hybrid_search=hybrid_search,
@@ -522,6 +539,40 @@ class _QueryGRPC(_BaseGRPC):
             is_consistent=metadata.is_consistent,
             vectors=metadata.vectors,
         )
+
+    def __boost_to_grpc(
+        self, boost: Optional[_Boost]
+    ) -> Optional[search_get_pb2.Boost]:
+        if boost is None:
+            return None
+        conditions = []
+        for cond in boost.conditions:
+            grpc_cond = search_get_pb2.BoostCondition(
+                filter=_FilterToGRPC.convert(cond.filter) if cond.filter is not None else None,
+                decay=(
+                    search_get_pb2.DecayFunction(
+                        path=[cond.decay.property],
+                        origin=cond.decay.origin,
+                        scale=cond.decay.scale,
+                        offset=cond.decay.offset,
+                        curve=cond.decay.curve,
+                        decay_value=cond.decay.decay_value,
+                    )
+                    if cond.decay is not None
+                    else None
+                ),
+                property_value=(
+                    search_get_pb2.PropertyValueFunction(
+                        path=[cond.property_value.property],
+                        modifier=cond.property_value.modifier,
+                    )
+                    if cond.property_value is not None
+                    else None
+                ),
+                weight=cond.weight,
+            )
+            conditions.append(grpc_cond)
+        return search_get_pb2.Boost(conditions=conditions, weight=boost.weight, depth=boost.depth)
 
     def __resolve_property(self, prop: QueryNested) -> search_get_pb2.ObjectPropertiesRequest:
         props = prop.properties if isinstance(prop.properties, list) else [prop.properties]
