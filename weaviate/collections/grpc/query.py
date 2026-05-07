@@ -540,6 +540,18 @@ class _QueryGRPC(_BaseGRPC):
             vectors=metadata.vectors,
         )
 
+    _CURVE_TO_PROTO = {
+        "exp": search_get_pb2.DECAY_CURVE_EXPONENTIAL,
+        "gauss": search_get_pb2.DECAY_CURVE_GAUSS,
+        "linear": search_get_pb2.DECAY_CURVE_LINEAR,
+    }
+
+    _MODIFIER_TO_PROTO = {
+        "none": search_get_pb2.PROPERTY_VALUE_MODIFIER_NONE,
+        "log1p": search_get_pb2.PROPERTY_VALUE_MODIFIER_LOG1P,
+        "sqrt": search_get_pb2.PROPERTY_VALUE_MODIFIER_SQRT,
+    }
+
     def __boost_to_grpc(
         self, boost: Optional[_Boost]
     ) -> Optional[search_get_pb2.Boost]:
@@ -547,30 +559,31 @@ class _QueryGRPC(_BaseGRPC):
             return None
         conditions = []
         for cond in boost.conditions:
-            grpc_cond = search_get_pb2.BoostCondition(
-                filter=_FilterToGRPC.convert(cond.filter) if cond.filter is not None else None,
-                decay=(
+            grpc_cond = search_get_pb2.BoostCondition(weight=cond.weight)
+            if cond.filter is not None:
+                grpc_cond.filter.CopyFrom(_FilterToGRPC.convert(cond.filter))
+            elif cond.decay is not None:
+                grpc_cond.decay.CopyFrom(
                     search_get_pb2.DecayFunction(
-                        path=[cond.decay.property],
+                        property=cond.decay.property,
                         origin=cond.decay.origin,
                         scale=cond.decay.scale,
                         offset=cond.decay.offset,
-                        curve=cond.decay.curve,
+                        curve=self._CURVE_TO_PROTO.get(
+                            cond.decay.curve, search_get_pb2.DECAY_CURVE_EXPONENTIAL
+                        ) if cond.decay.curve is not None else search_get_pb2.DECAY_CURVE_EXPONENTIAL,
                         decay_value=cond.decay.decay_value,
                     )
-                    if cond.decay is not None
-                    else None
-                ),
-                property_value=(
+                )
+            elif cond.property_value is not None:
+                grpc_cond.property_value.CopyFrom(
                     search_get_pb2.PropertyValueFunction(
-                        path=[cond.property_value.property],
-                        modifier=cond.property_value.modifier,
+                        property=cond.property_value.property,
+                        modifier=self._MODIFIER_TO_PROTO.get(
+                            cond.property_value.modifier, search_get_pb2.PROPERTY_VALUE_MODIFIER_NONE
+                        ) if cond.property_value.modifier is not None else search_get_pb2.PROPERTY_VALUE_MODIFIER_NONE,
                     )
-                    if cond.property_value is not None
-                    else None
-                ),
-                weight=cond.weight,
-            )
+                )
             conditions.append(grpc_cond)
         return search_get_pb2.Boost(conditions=conditions, weight=boost.weight, depth=boost.depth)
 
