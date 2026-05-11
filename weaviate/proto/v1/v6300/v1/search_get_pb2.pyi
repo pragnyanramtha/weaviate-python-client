@@ -10,26 +10,6 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class PropertyValueModifier(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    PROPERTY_VALUE_MODIFIER_UNSPECIFIED: _ClassVar[PropertyValueModifier]
-    PROPERTY_VALUE_MODIFIER_LOG1P: _ClassVar[PropertyValueModifier]
-    PROPERTY_VALUE_MODIFIER_SQRT: _ClassVar[PropertyValueModifier]
-
-class DecayCurve(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    DECAY_CURVE_UNSPECIFIED: _ClassVar[DecayCurve]
-    DECAY_CURVE_GAUSS: _ClassVar[DecayCurve]
-    DECAY_CURVE_LINEAR: _ClassVar[DecayCurve]
-    DECAY_CURVE_EXPONENTIAL: _ClassVar[DecayCurve]
-PROPERTY_VALUE_MODIFIER_UNSPECIFIED: PropertyValueModifier
-PROPERTY_VALUE_MODIFIER_LOG1P: PropertyValueModifier
-PROPERTY_VALUE_MODIFIER_SQRT: PropertyValueModifier
-DECAY_CURVE_UNSPECIFIED: DecayCurve
-DECAY_CURVE_GAUSS: DecayCurve
-DECAY_CURVE_LINEAR: DecayCurve
-DECAY_CURVE_EXPONENTIAL: DecayCurve
-
 class SearchRequest(_message.Message):
     __slots__ = ("collection", "tenant", "consistency_level", "properties", "metadata", "group_by", "limit", "offset", "autocut", "after", "sort_by", "filters", "hybrid_search", "bm25_search", "near_vector", "near_object", "near_text", "near_image", "near_audio", "near_video", "near_depth", "near_thermal", "near_imu", "generative", "rerank", "boost", "uses_123_api", "uses_125_api", "uses_127_api")
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
@@ -338,64 +318,78 @@ class RefPropertiesResult(_message.Message):
 
 class Boost(_message.Message):
     __slots__ = ("conditions", "weight", "depth")
+    class PropertyValueModifier(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = ()
+        PROPERTY_VALUE_MODIFIER_UNSPECIFIED: _ClassVar[Boost.PropertyValueModifier]
+        PROPERTY_VALUE_MODIFIER_LOG1P: _ClassVar[Boost.PropertyValueModifier]
+        PROPERTY_VALUE_MODIFIER_SQRT: _ClassVar[Boost.PropertyValueModifier]
+    PROPERTY_VALUE_MODIFIER_UNSPECIFIED: Boost.PropertyValueModifier
+    PROPERTY_VALUE_MODIFIER_LOG1P: Boost.PropertyValueModifier
+    PROPERTY_VALUE_MODIFIER_SQRT: Boost.PropertyValueModifier
+    class DecayCurve(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = ()
+        DECAY_CURVE_UNSPECIFIED: _ClassVar[Boost.DecayCurve]
+        DECAY_CURVE_GAUSS: _ClassVar[Boost.DecayCurve]
+        DECAY_CURVE_LINEAR: _ClassVar[Boost.DecayCurve]
+        DECAY_CURVE_EXPONENTIAL: _ClassVar[Boost.DecayCurve]
+    DECAY_CURVE_UNSPECIFIED: Boost.DecayCurve
+    DECAY_CURVE_GAUSS: Boost.DecayCurve
+    DECAY_CURVE_LINEAR: Boost.DecayCurve
+    DECAY_CURVE_EXPONENTIAL: Boost.DecayCurve
+    class PropertyValueFunction(_message.Message):
+        __slots__ = ("property", "modifier")
+        PROPERTY_FIELD_NUMBER: _ClassVar[int]
+        MODIFIER_FIELD_NUMBER: _ClassVar[int]
+        property: str
+        modifier: Boost.PropertyValueModifier
+        def __init__(self, property: _Optional[str] = ..., modifier: _Optional[_Union[Boost.PropertyValueModifier, str]] = ...) -> None: ...
+    class TimeDecayFunction(_message.Message):
+        __slots__ = ("property", "origin", "scale", "offset", "curve", "decay_value")
+        PROPERTY_FIELD_NUMBER: _ClassVar[int]
+        ORIGIN_FIELD_NUMBER: _ClassVar[int]
+        SCALE_FIELD_NUMBER: _ClassVar[int]
+        OFFSET_FIELD_NUMBER: _ClassVar[int]
+        CURVE_FIELD_NUMBER: _ClassVar[int]
+        DECAY_VALUE_FIELD_NUMBER: _ClassVar[int]
+        property: str
+        origin: str
+        scale: str
+        offset: str
+        curve: Boost.DecayCurve
+        decay_value: float
+        def __init__(self, property: _Optional[str] = ..., origin: _Optional[str] = ..., scale: _Optional[str] = ..., offset: _Optional[str] = ..., curve: _Optional[_Union[Boost.DecayCurve, str]] = ..., decay_value: _Optional[float] = ...) -> None: ...
+    class NumericDecayFunction(_message.Message):
+        __slots__ = ("property", "origin", "scale", "offset", "curve", "decay_value")
+        PROPERTY_FIELD_NUMBER: _ClassVar[int]
+        ORIGIN_FIELD_NUMBER: _ClassVar[int]
+        SCALE_FIELD_NUMBER: _ClassVar[int]
+        OFFSET_FIELD_NUMBER: _ClassVar[int]
+        CURVE_FIELD_NUMBER: _ClassVar[int]
+        DECAY_VALUE_FIELD_NUMBER: _ClassVar[int]
+        property: str
+        origin: float
+        scale: float
+        offset: float
+        curve: Boost.DecayCurve
+        decay_value: float
+        def __init__(self, property: _Optional[str] = ..., origin: _Optional[float] = ..., scale: _Optional[float] = ..., offset: _Optional[float] = ..., curve: _Optional[_Union[Boost.DecayCurve, str]] = ..., decay_value: _Optional[float] = ...) -> None: ...
+    class Condition(_message.Message):
+        __slots__ = ("filter", "time_decay", "property_value", "numeric_decay", "weight")
+        FILTER_FIELD_NUMBER: _ClassVar[int]
+        TIME_DECAY_FIELD_NUMBER: _ClassVar[int]
+        PROPERTY_VALUE_FIELD_NUMBER: _ClassVar[int]
+        NUMERIC_DECAY_FIELD_NUMBER: _ClassVar[int]
+        WEIGHT_FIELD_NUMBER: _ClassVar[int]
+        filter: _base_pb2.Filters
+        time_decay: Boost.TimeDecayFunction
+        property_value: Boost.PropertyValueFunction
+        numeric_decay: Boost.NumericDecayFunction
+        weight: float
+        def __init__(self, filter: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ..., time_decay: _Optional[_Union[Boost.TimeDecayFunction, _Mapping]] = ..., property_value: _Optional[_Union[Boost.PropertyValueFunction, _Mapping]] = ..., numeric_decay: _Optional[_Union[Boost.NumericDecayFunction, _Mapping]] = ..., weight: _Optional[float] = ...) -> None: ...
     CONDITIONS_FIELD_NUMBER: _ClassVar[int]
     WEIGHT_FIELD_NUMBER: _ClassVar[int]
     DEPTH_FIELD_NUMBER: _ClassVar[int]
-    conditions: _containers.RepeatedCompositeFieldContainer[BoostCondition]
+    conditions: _containers.RepeatedCompositeFieldContainer[Boost.Condition]
     weight: float
     depth: int
-    def __init__(self, conditions: _Optional[_Iterable[_Union[BoostCondition, _Mapping]]] = ..., weight: _Optional[float] = ..., depth: _Optional[int] = ...) -> None: ...
-
-class BoostCondition(_message.Message):
-    __slots__ = ("filter", "time_decay", "property_value", "numeric_decay", "weight")
-    FILTER_FIELD_NUMBER: _ClassVar[int]
-    TIME_DECAY_FIELD_NUMBER: _ClassVar[int]
-    PROPERTY_VALUE_FIELD_NUMBER: _ClassVar[int]
-    NUMERIC_DECAY_FIELD_NUMBER: _ClassVar[int]
-    WEIGHT_FIELD_NUMBER: _ClassVar[int]
-    filter: _base_pb2.Filters
-    time_decay: TimeDecayFunction
-    property_value: PropertyValueFunction
-    numeric_decay: NumericDecayFunction
-    weight: float
-    def __init__(self, filter: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ..., time_decay: _Optional[_Union[TimeDecayFunction, _Mapping]] = ..., property_value: _Optional[_Union[PropertyValueFunction, _Mapping]] = ..., numeric_decay: _Optional[_Union[NumericDecayFunction, _Mapping]] = ..., weight: _Optional[float] = ...) -> None: ...
-
-class PropertyValueFunction(_message.Message):
-    __slots__ = ("property", "modifier")
-    PROPERTY_FIELD_NUMBER: _ClassVar[int]
-    MODIFIER_FIELD_NUMBER: _ClassVar[int]
-    property: str
-    modifier: PropertyValueModifier
-    def __init__(self, property: _Optional[str] = ..., modifier: _Optional[_Union[PropertyValueModifier, str]] = ...) -> None: ...
-
-class TimeDecayFunction(_message.Message):
-    __slots__ = ("property", "origin", "scale", "offset", "curve", "decay_value")
-    PROPERTY_FIELD_NUMBER: _ClassVar[int]
-    ORIGIN_FIELD_NUMBER: _ClassVar[int]
-    SCALE_FIELD_NUMBER: _ClassVar[int]
-    OFFSET_FIELD_NUMBER: _ClassVar[int]
-    CURVE_FIELD_NUMBER: _ClassVar[int]
-    DECAY_VALUE_FIELD_NUMBER: _ClassVar[int]
-    property: str
-    origin: str
-    scale: str
-    offset: str
-    curve: DecayCurve
-    decay_value: float
-    def __init__(self, property: _Optional[str] = ..., origin: _Optional[str] = ..., scale: _Optional[str] = ..., offset: _Optional[str] = ..., curve: _Optional[_Union[DecayCurve, str]] = ..., decay_value: _Optional[float] = ...) -> None: ...
-
-class NumericDecayFunction(_message.Message):
-    __slots__ = ("property", "origin", "scale", "offset", "curve", "decay_value")
-    PROPERTY_FIELD_NUMBER: _ClassVar[int]
-    ORIGIN_FIELD_NUMBER: _ClassVar[int]
-    SCALE_FIELD_NUMBER: _ClassVar[int]
-    OFFSET_FIELD_NUMBER: _ClassVar[int]
-    CURVE_FIELD_NUMBER: _ClassVar[int]
-    DECAY_VALUE_FIELD_NUMBER: _ClassVar[int]
-    property: str
-    origin: float
-    scale: float
-    offset: float
-    curve: DecayCurve
-    decay_value: float
-    def __init__(self, property: _Optional[str] = ..., origin: _Optional[float] = ..., scale: _Optional[float] = ..., offset: _Optional[float] = ..., curve: _Optional[_Union[DecayCurve, str]] = ..., decay_value: _Optional[float] = ...) -> None: ...
+    def __init__(self, conditions: _Optional[_Iterable[_Union[Boost.Condition, _Mapping]]] = ..., weight: _Optional[float] = ..., depth: _Optional[int] = ...) -> None: ...

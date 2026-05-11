@@ -540,36 +540,39 @@ class _QueryGRPC(_BaseGRPC):
             vectors=metadata.vectors,
         )
 
+    _Boost_pb2 = search_get_pb2.Boost
+
     _CURVE_TO_PROTO = {
-        "exp": search_get_pb2.DECAY_CURVE_EXPONENTIAL,
-        "gauss": search_get_pb2.DECAY_CURVE_GAUSS,
-        "linear": search_get_pb2.DECAY_CURVE_LINEAR,
+        "exp": _Boost_pb2.DECAY_CURVE_EXPONENTIAL,
+        "gauss": _Boost_pb2.DECAY_CURVE_GAUSS,
+        "linear": _Boost_pb2.DECAY_CURVE_LINEAR,
     }
 
     _MODIFIER_TO_PROTO = {
-        "none": search_get_pb2.PROPERTY_VALUE_MODIFIER_UNSPECIFIED,
-        "log1p": search_get_pb2.PROPERTY_VALUE_MODIFIER_LOG1P,
-        "sqrt": search_get_pb2.PROPERTY_VALUE_MODIFIER_SQRT,
+        "none": _Boost_pb2.PROPERTY_VALUE_MODIFIER_UNSPECIFIED,
+        "log1p": _Boost_pb2.PROPERTY_VALUE_MODIFIER_LOG1P,
+        "sqrt": _Boost_pb2.PROPERTY_VALUE_MODIFIER_SQRT,
     }
 
     def __resolve_curve(self, curve: Optional[str]) -> int:
         if curve is None:
-            return search_get_pb2.DECAY_CURVE_EXPONENTIAL
-        return self._CURVE_TO_PROTO.get(curve, search_get_pb2.DECAY_CURVE_EXPONENTIAL)
+            return self._Boost_pb2.DECAY_CURVE_EXPONENTIAL
+        return self._CURVE_TO_PROTO.get(curve, self._Boost_pb2.DECAY_CURVE_EXPONENTIAL)
 
     def __boost_to_grpc(
         self, boost: Optional[_Boost]
     ) -> Optional[search_get_pb2.Boost]:
         if boost is None:
             return None
+        _B = self._Boost_pb2
         conditions = []
         for cond in boost.conditions:
-            grpc_cond = search_get_pb2.BoostCondition(weight=cond.weight)
+            grpc_cond = _B.Condition(weight=cond.weight)
             if cond.filter is not None:
                 grpc_cond.filter.CopyFrom(_FilterToGRPC.convert(cond.filter))
             elif cond.time_decay is not None:
                 grpc_cond.time_decay.CopyFrom(
-                    search_get_pb2.TimeDecayFunction(
+                    _B.TimeDecayFunction(
                         property=cond.time_decay.property,
                         origin=cond.time_decay.origin,
                         scale=cond.time_decay.scale,
@@ -580,7 +583,7 @@ class _QueryGRPC(_BaseGRPC):
                 )
             elif cond.numeric_decay is not None:
                 grpc_cond.numeric_decay.CopyFrom(
-                    search_get_pb2.NumericDecayFunction(
+                    _B.NumericDecayFunction(
                         property=cond.numeric_decay.property,
                         origin=cond.numeric_decay.origin,
                         scale=cond.numeric_decay.scale,
@@ -591,11 +594,11 @@ class _QueryGRPC(_BaseGRPC):
                 )
             elif cond.property_value is not None:
                 grpc_cond.property_value.CopyFrom(
-                    search_get_pb2.PropertyValueFunction(
+                    _B.PropertyValueFunction(
                         property=cond.property_value.property,
                         modifier=self._MODIFIER_TO_PROTO.get(
-                            cond.property_value.modifier, search_get_pb2.PROPERTY_VALUE_MODIFIER_UNSPECIFIED
-                        ) if cond.property_value.modifier is not None else search_get_pb2.PROPERTY_VALUE_MODIFIER_UNSPECIFIED,
+                            cond.property_value.modifier, _B.PROPERTY_VALUE_MODIFIER_UNSPECIFIED
+                        ) if cond.property_value.modifier is not None else _B.PROPERTY_VALUE_MODIFIER_UNSPECIFIED,
                     )
                 )
             conditions.append(grpc_cond)
