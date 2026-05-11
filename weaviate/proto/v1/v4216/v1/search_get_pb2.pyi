@@ -12,21 +12,23 @@ DESCRIPTOR: _descriptor.FileDescriptor
 
 class PropertyValueModifier(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
-    PROPERTY_VALUE_MODIFIER_NONE: _ClassVar[PropertyValueModifier]
+    PROPERTY_VALUE_MODIFIER_UNSPECIFIED: _ClassVar[PropertyValueModifier]
     PROPERTY_VALUE_MODIFIER_LOG1P: _ClassVar[PropertyValueModifier]
     PROPERTY_VALUE_MODIFIER_SQRT: _ClassVar[PropertyValueModifier]
 
 class DecayCurve(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
-    DECAY_CURVE_EXPONENTIAL: _ClassVar[DecayCurve]
+    DECAY_CURVE_UNSPECIFIED: _ClassVar[DecayCurve]
     DECAY_CURVE_GAUSS: _ClassVar[DecayCurve]
     DECAY_CURVE_LINEAR: _ClassVar[DecayCurve]
-PROPERTY_VALUE_MODIFIER_NONE: PropertyValueModifier
+    DECAY_CURVE_EXPONENTIAL: _ClassVar[DecayCurve]
+PROPERTY_VALUE_MODIFIER_UNSPECIFIED: PropertyValueModifier
 PROPERTY_VALUE_MODIFIER_LOG1P: PropertyValueModifier
 PROPERTY_VALUE_MODIFIER_SQRT: PropertyValueModifier
-DECAY_CURVE_EXPONENTIAL: DecayCurve
+DECAY_CURVE_UNSPECIFIED: DecayCurve
 DECAY_CURVE_GAUSS: DecayCurve
 DECAY_CURVE_LINEAR: DecayCurve
+DECAY_CURVE_EXPONENTIAL: DecayCurve
 
 class SearchRequest(_message.Message):
     __slots__ = ("collection", "tenant", "consistency_level", "properties", "metadata", "group_by", "limit", "offset", "autocut", "after", "sort_by", "filters", "hybrid_search", "bm25_search", "near_vector", "near_object", "near_text", "near_image", "near_audio", "near_video", "near_depth", "near_thermal", "near_imu", "generative", "rerank", "boost", "uses_123_api", "uses_125_api", "uses_127_api")

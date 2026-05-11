@@ -547,7 +547,7 @@ class _QueryGRPC(_BaseGRPC):
     }
 
     _MODIFIER_TO_PROTO = {
-        "none": search_get_pb2.PROPERTY_VALUE_MODIFIER_NONE,
+        "none": search_get_pb2.PROPERTY_VALUE_MODIFIER_UNSPECIFIED,
         "log1p": search_get_pb2.PROPERTY_VALUE_MODIFIER_LOG1P,
         "sqrt": search_get_pb2.PROPERTY_VALUE_MODIFIER_SQRT,
     }
@@ -580,8 +580,8 @@ class _QueryGRPC(_BaseGRPC):
                     search_get_pb2.PropertyValueFunction(
                         property=cond.property_value.property,
                         modifier=self._MODIFIER_TO_PROTO.get(
-                            cond.property_value.modifier, search_get_pb2.PROPERTY_VALUE_MODIFIER_NONE
-                        ) if cond.property_value.modifier is not None else search_get_pb2.PROPERTY_VALUE_MODIFIER_NONE,
+                            cond.property_value.modifier, search_get_pb2.PROPERTY_VALUE_MODIFIER_UNSPECIFIED
+                        ) if cond.property_value.modifier is not None else search_get_pb2.PROPERTY_VALUE_MODIFIER_UNSPECIFIED,
                     )
                 )
             conditions.append(grpc_cond)
