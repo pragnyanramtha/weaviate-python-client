@@ -245,11 +245,21 @@ class Rerank(_WeaviateInput):
 
 
 @dataclass
-class _DecayFunction:
+class _TimeDecayFunction:
     property: str
     origin: str
     scale: str
     offset: Optional[str] = None
+    curve: Optional[str] = None
+    decay_value: Optional[float] = None
+
+
+@dataclass
+class _NumericDecayFunction:
+    property: str
+    origin: float
+    scale: float
+    offset: Optional[float] = None
     curve: Optional[str] = None
     decay_value: Optional[float] = None
 
@@ -263,7 +273,8 @@ class _PropertyValueFunction:
 @dataclass
 class _BoostCondition:
     filter: Optional[Any] = None  # FilterReturn
-    decay: Optional[_DecayFunction] = None
+    time_decay: Optional[_TimeDecayFunction] = None
+    numeric_decay: Optional[_NumericDecayFunction] = None
     property_value: Optional[_PropertyValueFunction] = None
     weight: Optional[float] = None
 
@@ -338,41 +349,81 @@ class Boost:
         return _Boost(conditions=[_BoostCondition(filter=filter)], weight=weight, depth=depth)
 
     @staticmethod
-    def decay(
+    def time_decay(
         property: str,
         *,
-        origin: Optional[Union[str, int, float, datetime]] = None,
-        scale: Union[str, int, float, timedelta],
-        offset: Optional[Union[str, int, float, timedelta]] = None,
+        origin: Optional[Union[str, datetime]] = None,
+        scale: Union[str, timedelta],
+        offset: Optional[Union[str, timedelta]] = None,
         curve: Optional[Union[_BoostCurve, str]] = None,
         decay_value: Optional[float] = None,
         weight: Optional[float] = None,
         depth: Optional[int] = None,
     ) -> _Boost:
-        """Apply distance-based decay scoring from an origin value.
+        """Apply time-based decay scoring from an origin date.
 
         Args:
-            property: The property name to compute distance from.
-            origin: The origin point. Use "now" for current time, a datetime for a specific time,
-                or a numeric value for number properties. Defaults to "now" for date properties.
-            scale: Distance from origin where score equals decay_value. Use timedelta for date
-                properties (e.g. timedelta(days=7)) or a number for numeric properties. String
-                shorthands like "7d", "24h" are also accepted.
+            property: The date property name to compute distance from.
+            origin: The origin point. Use "now" for current time or a datetime for a specific time.
+                Defaults to "now".
+            scale: Distance from origin where score equals decay_value. Use timedelta
+                (e.g. timedelta(days=7)) or a string shorthand like "7d", "24h".
             offset: Documents within this distance from origin get full score (default "0").
                 Accepts the same types as scale.
             curve: Decay curve type: `Boost.Curve.EXPONENTIAL` (default), `Boost.Curve.GAUSSIAN`, or `Boost.Curve.LINEAR`.
             decay_value: Score at scale distance from origin (default 0.5).
             weight: Blending weight [0,1] controlling how much the rank affects final scores.
-            depth: Number of results to rescore (default 100, max 10000). Higher values improve accuracy at the cost of performance.
+            depth: Number of results to rescore (default 100, max 10000).
         """
         return _Boost(
             conditions=[
                 _BoostCondition(
-                    decay=_DecayFunction(
+                    time_decay=_TimeDecayFunction(
                         property=property,
                         origin=_decay_value_to_str(origin) if origin is not None else "",
                         scale=_decay_value_to_str(scale),
                         offset=_decay_value_to_str(offset) if offset is not None else None,
+                        curve=curve.value if isinstance(curve, _BoostCurve) else curve,
+                        decay_value=decay_value,
+                    )
+                )
+            ],
+            weight=weight,
+            depth=depth,
+        )
+
+    @staticmethod
+    def numeric_decay(
+        property: str,
+        *,
+        origin: float,
+        scale: float,
+        offset: Optional[float] = None,
+        curve: Optional[Union[_BoostCurve, str]] = None,
+        decay_value: Optional[float] = None,
+        weight: Optional[float] = None,
+        depth: Optional[int] = None,
+    ) -> _Boost:
+        """Apply numeric distance-based decay scoring from an origin value.
+
+        Args:
+            property: The numeric property name to compute distance from.
+            origin: The origin point (numeric value).
+            scale: Distance from origin where score equals decay_value.
+            offset: Documents within this distance from origin get full score (default 0).
+            curve: Decay curve type: `Boost.Curve.EXPONENTIAL` (default), `Boost.Curve.GAUSSIAN`, or `Boost.Curve.LINEAR`.
+            decay_value: Score at scale distance from origin (default 0.5).
+            weight: Blending weight [0,1] controlling how much the rank affects final scores.
+            depth: Number of results to rescore (default 100, max 10000).
+        """
+        return _Boost(
+            conditions=[
+                _BoostCondition(
+                    numeric_decay=_NumericDecayFunction(
+                        property=property,
+                        origin=float(origin),
+                        scale=float(scale),
+                        offset=float(offset) if offset is not None else None,
                         curve=curve.value if isinstance(curve, _BoostCurve) else curve,
                         decay_value=decay_value,
                     )
@@ -423,7 +474,7 @@ class Boost:
         and the `weight` parameter here controls the overall blending strength.
 
         Args:
-            *ranks: Rank objects created via `Boost.filter()`, `Boost.decay()`, or `Boost.property()`.
+            *ranks: Rank objects created via `Boost.filter()`, `Boost.time_decay()`, `Boost.numeric_decay()`, or `Boost.property()`.
             weight: Overall blending weight [0,1] for combining primary search and rank scores.
             depth: Number of results to rescore (default 100, max 10000). Higher values improve accuracy at the cost of performance.
         """
@@ -431,7 +482,7 @@ class Boost:
         for r in ranks:
             for cond in r.conditions:
                 if cond.weight is None and r.weight is not None:
-                    cond = _BoostCondition(filter=cond.filter, decay=cond.decay, property_value=cond.property_value, weight=r.weight)
+                    cond = _BoostCondition(filter=cond.filter, time_decay=cond.time_decay, numeric_decay=cond.numeric_decay, property_value=cond.property_value, weight=r.weight)
                 conditions.append(cond)
         return _Boost(conditions=conditions, weight=weight, depth=depth)
 

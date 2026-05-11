@@ -552,6 +552,11 @@ class _QueryGRPC(_BaseGRPC):
         "sqrt": search_get_pb2.PROPERTY_VALUE_MODIFIER_SQRT,
     }
 
+    def __resolve_curve(self, curve: Optional[str]) -> int:
+        if curve is None:
+            return search_get_pb2.DECAY_CURVE_EXPONENTIAL
+        return self._CURVE_TO_PROTO.get(curve, search_get_pb2.DECAY_CURVE_EXPONENTIAL)
+
     def __boost_to_grpc(
         self, boost: Optional[_Boost]
     ) -> Optional[search_get_pb2.Boost]:
@@ -562,17 +567,26 @@ class _QueryGRPC(_BaseGRPC):
             grpc_cond = search_get_pb2.BoostCondition(weight=cond.weight)
             if cond.filter is not None:
                 grpc_cond.filter.CopyFrom(_FilterToGRPC.convert(cond.filter))
-            elif cond.decay is not None:
-                grpc_cond.decay.CopyFrom(
-                    search_get_pb2.DecayFunction(
-                        property=cond.decay.property,
-                        origin=cond.decay.origin,
-                        scale=cond.decay.scale,
-                        offset=cond.decay.offset,
-                        curve=self._CURVE_TO_PROTO.get(
-                            cond.decay.curve, search_get_pb2.DECAY_CURVE_EXPONENTIAL
-                        ) if cond.decay.curve is not None else search_get_pb2.DECAY_CURVE_EXPONENTIAL,
-                        decay_value=cond.decay.decay_value,
+            elif cond.time_decay is not None:
+                grpc_cond.time_decay.CopyFrom(
+                    search_get_pb2.TimeDecayFunction(
+                        property=cond.time_decay.property,
+                        origin=cond.time_decay.origin,
+                        scale=cond.time_decay.scale,
+                        offset=cond.time_decay.offset,
+                        curve=self.__resolve_curve(cond.time_decay.curve),
+                        decay_value=cond.time_decay.decay_value,
+                    )
+                )
+            elif cond.numeric_decay is not None:
+                grpc_cond.numeric_decay.CopyFrom(
+                    search_get_pb2.NumericDecayFunction(
+                        property=cond.numeric_decay.property,
+                        origin=cond.numeric_decay.origin,
+                        scale=cond.numeric_decay.scale,
+                        offset=cond.numeric_decay.offset,
+                        curve=self.__resolve_curve(cond.numeric_decay.curve),
+                        decay_value=cond.numeric_decay.decay_value,
                     )
                 )
             elif cond.property_value is not None:
