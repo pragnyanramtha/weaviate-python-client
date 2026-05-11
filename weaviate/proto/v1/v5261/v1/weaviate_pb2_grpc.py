@@ -9,7 +9,7 @@ from weaviate.proto.v1.v5261.v1 import batch_pb2 as v1_dot_batch__pb2
 from weaviate.proto.v1.v5261.v1 import search_get_pb2 as v1_dot_search__get__pb2
 from weaviate.proto.v1.v5261.v1 import tenants_pb2 as v1_dot_tenants__pb2
 
-GRPC_GENERATED_VERSION = '1.64.1'
+GRPC_GENERATED_VERSION = '1.63.0'
 GRPC_VERSION = grpc.__version__
 EXPECTED_ERROR_RELEASE = '1.65.0'
 SCHEDULED_RELEASE_DATE = 'June 25, 2024'
@@ -167,7 +167,6 @@ def add_WeaviateServicer_to_server(servicer, server):
     generic_handler = grpc.method_handlers_generic_handler(
             'weaviate.v1.Weaviate', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('weaviate.v1.Weaviate', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
