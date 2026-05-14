@@ -336,19 +336,6 @@ class Boost(_message.Message):
     DECAY_CURVE_GAUSS: Boost.DecayCurve
     DECAY_CURVE_LINEAR: Boost.DecayCurve
     DECAY_CURVE_EXPONENTIAL: Boost.DecayCurve
-    class Condition(_message.Message):
-        __slots__ = ("filter", "time_decay", "property_value", "numeric_decay", "weight")
-        FILTER_FIELD_NUMBER: _ClassVar[int]
-        TIME_DECAY_FIELD_NUMBER: _ClassVar[int]
-        PROPERTY_VALUE_FIELD_NUMBER: _ClassVar[int]
-        NUMERIC_DECAY_FIELD_NUMBER: _ClassVar[int]
-        WEIGHT_FIELD_NUMBER: _ClassVar[int]
-        filter: _base_pb2.Filters
-        time_decay: Boost.TimeDecayFunction
-        property_value: Boost.PropertyValueFunction
-        numeric_decay: Boost.NumericDecayFunction
-        weight: float
-        def __init__(self, filter: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ..., time_decay: _Optional[_Union[Boost.TimeDecayFunction, _Mapping]] = ..., property_value: _Optional[_Union[Boost.PropertyValueFunction, _Mapping]] = ..., numeric_decay: _Optional[_Union[Boost.NumericDecayFunction, _Mapping]] = ..., weight: _Optional[float] = ...) -> None: ...
     class PropertyValueFunction(_message.Message):
         __slots__ = ("property", "modifier")
         PROPERTY_FIELD_NUMBER: _ClassVar[int]
@@ -386,6 +373,19 @@ class Boost(_message.Message):
         curve: Boost.DecayCurve
         decay_value: float
         def __init__(self, property: _Optional[str] = ..., origin: _Optional[float] = ..., scale: _Optional[float] = ..., offset: _Optional[float] = ..., curve: _Optional[_Union[Boost.DecayCurve, str]] = ..., decay_value: _Optional[float] = ...) -> None: ...
+    class Condition(_message.Message):
+        __slots__ = ("filter", "time_decay", "property_value", "numeric_decay", "weight")
+        FILTER_FIELD_NUMBER: _ClassVar[int]
+        TIME_DECAY_FIELD_NUMBER: _ClassVar[int]
+        PROPERTY_VALUE_FIELD_NUMBER: _ClassVar[int]
+        NUMERIC_DECAY_FIELD_NUMBER: _ClassVar[int]
+        WEIGHT_FIELD_NUMBER: _ClassVar[int]
+        filter: _base_pb2.Filters
+        time_decay: Boost.TimeDecayFunction
+        property_value: Boost.PropertyValueFunction
+        numeric_decay: Boost.NumericDecayFunction
+        weight: float
+        def __init__(self, filter: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ..., time_decay: _Optional[_Union[Boost.TimeDecayFunction, _Mapping]] = ..., property_value: _Optional[_Union[Boost.PropertyValueFunction, _Mapping]] = ..., numeric_decay: _Optional[_Union[Boost.NumericDecayFunction, _Mapping]] = ..., weight: _Optional[float] = ...) -> None: ...
     CONDITIONS_FIELD_NUMBER: _ClassVar[int]
     WEIGHT_FIELD_NUMBER: _ClassVar[int]
     DEPTH_FIELD_NUMBER: _ClassVar[int]
